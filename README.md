@@ -70,27 +70,33 @@ sed -i.bak -e  "s/^persistent_peers *=.*/persistent_peers = \"$peers\"/" ~/.mise
 
 ```
 
-SNAP_RPC="https://e1.mises.site:443"
+peers="de2ec4e1fa7725517075c47fe0086dcee6c0818d@mises.statesync.nodersteam.com:26656"
+
+sed -i.bak -e  "s/^persistent_peers *=.*/persistent_peers = \"$peers\"/" ~/.misestm/config/config.toml
+
+SNAP_RPC=http://mises.statesync.nodersteam.com:26657
 
 LATEST_HEIGHT=$(curl -s $SNAP_RPC/block | jq -r .result.block.header.height); \
 
-BLOCK_HEIGHT=$((LATEST_HEIGHT - 2000)); \
+BLOCK_HEIGHT=$((LATEST_HEIGHT - 500)); \
 
 TRUST_HASH=$(curl -s "$SNAP_RPC/block?height=$BLOCK_HEIGHT" | jq -r .result.block_id.hash)
 
 echo $LATEST_HEIGHT $BLOCK_HEIGHT $TRUST_HASH
 
-sed -i -E "s|^(enable[[:space:]]+=[[:space:]]+).*$|\1true| ; \
+sed -i.bak -E "s|^(enable[[:space:]]+=[[:space:]]+).*$|\1true| ; \
 
 s|^(rpc_servers[[:space:]]+=[[:space:]]+).*$|\1\"$SNAP_RPC,$SNAP_RPC\"| ; \
 
 s|^(trust_height[[:space:]]+=[[:space:]]+).*$|\1$BLOCK_HEIGHT| ; \
 
-s|^(trust_hash[[:space:]]+=[[:space:]]+).*$|\1\"$TRUST_HASH\"|" $HOME/.misestm/config/config.toml
+s|^(trust_hash[[:space:]]+=[[:space:]]+).*$|\1\"$TRUST_HASH\"| ; \
 
-mv $HOME/.misestm/priv_validator_state.json.backup $HOME/.misestm/data/priv_validator_state.json
+s|^(seeds[[:space:]]+=[[:space:]]+).*$|\1\"\"|" $HOME/.misestm/config/config.toml
 
-sudo systemctl restart misestmd && sudo journalctl -u misestmd -f --no-hostname -o cat
+misestmd tendermint unsafe-reset-all --home /root/.misestm --keep-addr-book
+
+sudo systemctl restart misestmd && journalctl -u misestmd -f -o cat
 
 ```
 
